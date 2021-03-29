@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Tetris</title>
+        <style>
+            .container {
+                float: left;
+                height: 100%;
+                width: 50%;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <canvas id="tetris" height="400" width="200">Browser not supported. Try a newer one. ;]</canvas>
+        </div>
+        <div class="container">
+            <div class="info">
+                Points: 
+                <span id="points"></span>
+            </div>
+            <div class="info">
+                Record: 
+                <span id="record"></span>
+            </div>
+        </div>
+        <script type="text/javascript" src="./tetris.js"></script>
+    </body>
+</html>
