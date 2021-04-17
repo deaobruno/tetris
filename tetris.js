@@ -7,7 +7,6 @@ window.onload = () => {
 class Drawer {
   canvas = document.getElementById('tetris')
   ctx = this.canvas.getContext('2d')
-
   squareLength = 20
 
   constructor(x, y, width, height, color) {
@@ -27,40 +26,61 @@ class Drawer {
 class Tetris {
   pointsElement = document.getElementById('points')
   recordElement = document.getElementById('record')
-
   interval = 600
-
   gameStarted = false
-
   points = 0
-
   piece = {}
   stage = {}
   merged = {}
-
   stage = new Stage()
   merged = new Merged(this.stage, this)
   piece = new Piece(this.stage, this.merged)
 
   boot = () => {
-    setInterval(
-      async () => {
-        this.stage.draw()
+    this.recordElement.innerText = 0
 
-        if (this.piece.reachedLimit) {
-          this.getPiece()
+    this.run()
+  }
+
+  drawInfo = async () => {
+    this.stage.draw()
+
+    if (this.piece.reachedLimit) {
+      this.getPiece()
+    }
+
+    await document.addEventListener('keydown', this.gameStarted ? this.piece.keyPush : this.start)
+
+    if (this.gameStarted) {
+      this.drawElements()
+    }
+
+    this.pointsElement.innerText = this.points
+  }
+
+  run = () => {
+    let interval = this.interval
+
+    const internalCallback = (() => {
+      return () => {
+        if (this.gameStarted === false) {
+          this.interval = interval
         }
 
-        await document.addEventListener('keydown', this.gameStarted ? this.piece.keyPush : this.start)
-
-        if (this.gameStarted) {
-          this.drawElements()
+        if (this.piece.topLimit === -2 && this.points > 0 && this.points % 100 === 0) {
+          this.nextLevel()
         }
 
-        this.pointsElement.innerText = this.points
-      },
-      this.interval
-    )
+        setTimeout(internalCallback, this.interval)
+        this.drawInfo()
+      }
+    })()
+
+    setTimeout(internalCallback, this.interval)
+  }
+
+  nextLevel = () => {
+    this.interval -= 60
   }
 
   getPiece = () => {
@@ -88,6 +108,7 @@ class Tetris {
 
   restart = () => {
     const RECORD = parseInt(this.recordElement.innerText)
+
     this.recordElement.innerText = RECORD > this.points ? RECORD : this.points
     this.points = 0
     this.gameStarted = false
@@ -119,7 +140,7 @@ class Piece {
   speed = 1
   speedX = 0
   speedY = 0
-  base = { x: 3, y: 0 }
+  base = { x: 3, y: -3 }
   reachedLimit = false
   // Auxiliar classes objects
   stage = {}
@@ -411,8 +432,8 @@ class Piece {
 
     this.blocks = PIECE.blocks[this.instance]
     this.color = PIECE.color
-
     this.leftLimit = this.blocks.reduce((min, p) => p.x < min ? p.x : min, this.blocks[0].x)
+    this.topLimit = this.blocks.reduce((min, p) => p.y < min ? p.y : min, this.blocks[0].y)
     this.rightLimit = this.blocks.reduce((max, p) => p.x > max ? p.x : max, this.blocks[0].x)
     this.bottomLimit = this.blocks.reduce((max, p) => p.y > max ? p.y : max, this.blocks[0].y)
   }
@@ -532,7 +553,6 @@ class Piece {
     return this.blocks.map((p) => {
       const NEXT_X = direction === 'bottom' ? p.x : (direction === 'right' ? p.x + 1 : p.x - 1)
       const NEXT_Y = direction !== 'bottom' ? p.y : p.y + 1
-
       const NEXT_BLOCK = this.blocks.filter(pi => pi.x === NEXT_X && pi.y === NEXT_Y)
 
       if (NEXT_BLOCK.length > 0) {
@@ -547,9 +567,7 @@ class Piece {
 class Merged {
   pieces = []
   blocks = []
-
   reachedTop = false
-
   stage = {}
   tetris = {}
 
@@ -559,13 +577,12 @@ class Merged {
   }
 
   join = (piece, color) => {
-    if (piece.blocks.reduce((min, p) => p.y < min ? p.y : min, piece.blocks[0].y) <= 0) {
+    if (piece.topLimit <= 0) {
       this.reachedTop = true
       return
     }
 
     this.pieces.push(piece)
-
     this.blocks.push(...piece.blocks)
 
     for (let i = 0; i < this.stage.bottomLimit; i++) {
@@ -577,9 +594,7 @@ class Merged {
         })
 
         this.blocks = this.blocks.filter(b => b.y != i)
-
         this.blocks.map(b => b.y < i ? { x: b.x, y: b.y++ } : { x: b.x, y: b.y })
-
         this.tetris.points += 10
       }
     }
