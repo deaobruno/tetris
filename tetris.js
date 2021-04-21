@@ -60,27 +60,40 @@ class Tetris {
 
   run = () => {
     let interval = this.interval
+    let pointsBefore = 0
+    let pointsAfter = 0
 
     const internalCallback = (() => {
       return () => {
+        let pointsDiff = pointsAfter - pointsBefore
+
         if (this.gameStarted === false) {
           this.interval = interval
         }
 
-        if (this.piece.topLimit === -2 && this.points > 0 && this.points % 100 === 0) {
+        pointsBefore = this.getHundred()
+
+        if (pointsDiff > 0) {
           this.nextLevel()
         }
 
         setTimeout(internalCallback, this.interval)
+
         this.drawInfo()
+
+        pointsAfter = this.getHundred()
       }
     })()
 
     setTimeout(internalCallback, this.interval)
   }
 
+  getHundred = () => {
+    return Math.trunc(this.points / 100)
+  }
+
   nextLevel = () => {
-    this.interval -= 60
+    this.interval -= 30
   }
 
   getPiece = () => {
