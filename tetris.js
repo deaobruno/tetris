@@ -5,16 +5,11 @@ window.onload = () => {
 }
 
 class Drawer {
-  canvas = document.getElementById('tetris')
-  ctx = this.canvas.getContext('2d')
   squareLength = 20
 
-  constructor(x, y, width, height, color) {
-    this.x = x * this.squareLength
-    this.y = y * this.squareLength
-    this.width = width
-    this.height = height
-    this.color = color
+  constructor(canvas) {
+    this.canvas = document.getElementById(canvas)
+    this.ctx = this.canvas.getContext('2d')
   }
 
   draw = () => {
@@ -33,23 +28,60 @@ class Tetris {
   stage = {}
   merged = {}
   stage = new Stage()
+  preview = new Preview()
   merged = new Merged(this.stage, this)
   piece = new Piece(this.stage, this.merged)
+  nextPiece = this.piece
+  piecePreview = new PiecePreview(this.preview, this.piece)
 
   boot = () => {
+    let interval = this.interval
+    let hundredBefore = 0
+    let hundredAfter = 0
+
     this.recordElement.innerText = 0
 
-    this.run()
+    const INTERNAL_CALLBACK = (() => {
+      return async () => {
+        let hundredDiff = hundredAfter - hundredBefore
+
+        hundredBefore = this.getHundred()
+
+        if (!this.gameStarted) {
+          this.interval = interval
+        }
+
+        if (this.piece.reachedLimit) {
+          this.getPiece()
+        }
+
+        if (hundredDiff > 0) {
+          this.nextLevel()
+        }
+
+        await document.addEventListener('keydown', this.gameStarted ? this.piece.keyPush : this.start)
+
+        setTimeout(INTERNAL_CALLBACK, this.interval)
+
+        this.drawInfo()
+
+        if (this.gameStarted && this.piece.topLimit === -2) {
+          this.nextPiece = new Piece(this.stage, this.merged)
+          this.piecePreview = new PiecePreview(this.preview, this.nextPiece)
+        }
+
+        this.piecePreview.drawBlocks()
+
+        hundredAfter = this.getHundred()
+      }
+    })()
+
+    setTimeout(INTERNAL_CALLBACK, this.interval)
   }
 
-  drawInfo = async () => {
+  drawInfo = () => {
     this.stage.draw()
-
-    if (this.piece.reachedLimit) {
-      this.getPiece()
-    }
-
-    await document.addEventListener('keydown', this.gameStarted ? this.piece.keyPush : this.start)
+    this.preview.draw()
 
     if (this.gameStarted) {
       this.drawElements()
@@ -58,42 +90,12 @@ class Tetris {
     this.pointsElement.innerText = this.points
   }
 
-  run = () => {
-    let interval = this.interval
-    let pointsBefore = 0
-    let pointsAfter = 0
-
-    const internalCallback = (() => {
-      return () => {
-        let pointsDiff = pointsAfter - pointsBefore
-
-        if (this.gameStarted === false) {
-          this.interval = interval
-        }
-
-        pointsBefore = this.getHundred()
-
-        if (pointsDiff > 0) {
-          this.nextLevel()
-        }
-
-        setTimeout(internalCallback, this.interval)
-
-        this.drawInfo()
-
-        pointsAfter = this.getHundred()
-      }
-    })()
-
-    setTimeout(internalCallback, this.interval)
-  }
-
   getHundred = () => {
     return Math.trunc(this.points / 100)
   }
 
   nextLevel = () => {
-    this.interval -= 30
+    this.interval -= 45
   }
 
   getPiece = () => {
@@ -106,7 +108,7 @@ class Tetris {
 
     document.removeEventListener('keydown', this.piece.keyPush)
 
-    this.piece = new Piece(this.stage, this.merged)
+    this.piece = this.nextPiece
   }
 
   drawElements = () => {
@@ -127,6 +129,8 @@ class Tetris {
     this.gameStarted = false
     this.merged = new Merged(this.stage, this)
     this.piece = new Piece(this.stage, this.merged)
+    this.nextPiece = this.piece
+    this.piecePreview = new PiecePreview(this.preview, this.piece)
   }
 }
 
@@ -138,6 +142,10 @@ class Stage extends Drawer {
   color = '#2c3e50'
   rightLimit = this.width / this.squareLength
   bottomLimit = this.height / this.squareLength
+
+  constructor() {
+    super('tetris')
+  }
 }
 
 class Piece {
@@ -453,7 +461,7 @@ class Piece {
 
   drawBlocks = () => {
     this.blocks.map((b) => {
-      const BLOCK = new Block(b.x, b.y, this.color)
+      const BLOCK = new Block('tetris', b.x, b.y, this.color)
 
       BLOCK.draw()
     })
@@ -618,12 +626,317 @@ class Merged {
   }
 }
 
+class Preview extends Drawer {
+  x = 0
+  y = 0
+  width = this.canvas.width
+  height = this.canvas.height
+  color = '#2c3e50'
+
+  constructor() {
+    super('preview')
+  }
+}
+
+class PiecePreview {
+  base = { x: 1, y: 1 }
+
+  constructor(preview, piece) {
+    const TYPES = [
+      {
+        color: '#c0392b',
+        blocks: [
+          [
+            // [0,0][1,0][2,0]
+            //      [1,1]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x + 2, y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y + 1 }
+          ],
+          [
+            //      [1,0]
+            // [0,1][1,1]
+            //      [1,2]
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 2 }
+          ],
+          [
+            //      [1,0]
+            // [0,1][1,1][2,1]
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 },
+            { x: this.base.x + 2, y: this.base.y + 1 }
+          ],
+          [
+            // [0,0]
+            // [0,1][1,1]
+            // [0,2]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 },
+            { x: this.base.x,     y: this.base.y + 2 }
+          ]
+        ]
+      },
+      {
+        color: '#2980b9',
+        blocks: [
+          [
+            // [0,0][1,0][2,0]
+            //           [2,1]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x + 2, y: this.base.y },
+            { x: this.base.x + 2, y: this.base.y + 1 }
+          ],
+          [
+            //      [1,0]
+            //      [1,1]
+            // [0,2][1,2]
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y + 1 },
+            { x: this.base.x,     y: this.base.y + 2 },
+            { x: this.base.x + 1, y: this.base.y + 2 }
+          ],
+          [
+            // [0,0]
+            // [0,1][1,1][2,1]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 },
+            { x: this.base.x + 2, y: this.base.y + 1 }
+          ],
+          [
+            // [0,0][1,0]
+            // [0,1]
+            // [0,2]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x,     y: this.base.y + 2 }
+          ]
+        ]
+      },
+      {
+        color: '#f39c12',
+        blocks: [
+          [
+            // [0,0][1,0]
+            //      [1,1][2,1]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y + 1 },
+            { x: this.base.x + 2, y: this.base.y + 1 }
+          ],
+          [
+            //      [1,0]
+            // [0,1][1,1]
+            // [0,2]
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 },
+            { x: this.base.x,     y: this.base.y + 2 }
+          ],
+          [
+            // [0,0][1,0]
+            //      [1,1][2,1]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y + 1 },
+            { x: this.base.x + 2, y: this.base.y + 1 }
+          ],
+          [
+            //      [1,0]
+            // [0,1][1,1]
+            // [0,2]
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 },
+            { x: this.base.x,     y: this.base.y + 2 }
+          ]
+        ]
+      },
+      {
+        color: '#8e44ad',
+        blocks: [
+          [
+            // [0,0][1,0]
+            // [0,1][1,1]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 }
+          ],
+          [
+            // [0,0][1,0]
+            // [0,1][1,1]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 }
+          ],
+          [
+            // [0,0][1,0]
+            // [0,1][1,1]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 }
+          ],
+          [
+            // [0,0][1,0]
+            // [0,1][1,1]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 }
+          ]
+        ]
+      },
+      {
+        color: '#d35400',
+        blocks: [
+          [
+            //      [1,0][2,0]
+            // [0,1][1,1]
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x + 2, y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 }
+          ],
+          [
+            // [0,0]
+            // [0,1][1,1]
+            //      [1,2]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 2 }
+          ],
+          [
+            //      [1,0][2,0]
+            // [0,1][1,1]
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x + 2, y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 }
+          ],
+          [
+            // [0,0]
+            // [0,1][1,1]
+            //      [1,2]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 2 }
+          ]
+        ]
+      },
+      {
+        color: '#27ae60',
+        blocks: [
+          [
+            // [0,0][1,0][2,0]
+            // [0,1]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x + 2, y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 }
+          ],
+          [
+            // [0,0][1,0]
+            //      [1,1]
+            //      [1,2]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 2 }
+          ],
+          [
+            //           [2,0]
+            // [0,1][1,1][2,1]
+            { x: this.base.x + 2, y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x + 1, y: this.base.y + 1 },
+            { x: this.base.x + 2, y: this.base.y + 1 }
+          ],
+          [
+            // [0,0]
+            // [0,1]
+            // [0,2][1,2]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x,     y: this.base.y + 2 },
+            { x: this.base.x + 1, y: this.base.y + 2 }
+          ]
+        ]
+      },
+      {
+        color: '#bdc3c7',
+        blocks: [
+          [
+            // [0,0][1,0][2,0][3,0]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x + 2, y: this.base.y },
+            { x: this.base.x + 3, y: this.base.y }
+          ],
+          [
+            // [0,0]
+            // [0,1]
+            // [0,2]
+            // [0,3]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x,     y: this.base.y + 2 },
+            { x: this.base.x,     y: this.base.y + 3 }
+          ],
+          [
+            // [0,0][1,0][2,0][3,0]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x + 1, y: this.base.y },
+            { x: this.base.x + 2, y: this.base.y },
+            { x: this.base.x + 3, y: this.base.y }
+          ],
+          [
+            // [0,0]
+            // [0,1]
+            // [0,2]
+            // [0,3]
+            { x: this.base.x,     y: this.base.y },
+            { x: this.base.x,     y: this.base.y + 1 },
+            { x: this.base.x,     y: this.base.y + 2 },
+            { x: this.base.x,     y: this.base.y + 3 }
+          ]
+        ]
+      }
+    ]
+
+    const PIECE = TYPES[piece.type]
+
+    this.blocks = PIECE.blocks[piece.instance]
+    this.color = PIECE.color
+  }
+
+  drawBlocks = () => {
+    this.blocks.map((b) => {
+      const BLOCK = new Block('preview', b.x, b.y, this.color)
+
+      BLOCK.draw()
+    })
+  }
+}
+
 class Block extends Drawer {
   width = this.squareLength - 1
   height = this.squareLength - 1
 
-  constructor(x, y, color) {
-    super()
+  constructor(canvas, x, y, color) {
+    super(canvas)
 
     this.x = x * this.squareLength
     this.y = y * this.squareLength
