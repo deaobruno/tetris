@@ -65,13 +65,6 @@ class Tetris {
 
         this.drawInfo()
 
-        if (this.gameStarted && this.piece.topLimit === -2) {
-          this.nextPiece = new Piece(this.stage, this.merged)
-          this.piecePreview = new PiecePreview(this.preview, this.nextPiece)
-        }
-
-        this.piecePreview.drawBlocks()
-
         hundredAfter = this.getHundred()
       }
     })()
@@ -85,7 +78,14 @@ class Tetris {
 
     if (this.gameStarted) {
       this.drawElements()
+
+      if (this.piece.topLimit === -2) {
+        this.nextPiece = new Piece(this.stage, this.merged)
+        this.piecePreview = new PiecePreview(this.preview, this.nextPiece)
+      }
     }
+
+    this.piecePreview.drawBlocks()
 
     this.pointsElement.innerText = this.points
   }
@@ -468,6 +468,10 @@ class Piece {
   }
 
   keyPush = (event) => {
+    if (this.reachedLimit) {
+      return
+    }
+
     switch (event.keyCode) {
       case 37: // left arrow
         this.goLeft()
