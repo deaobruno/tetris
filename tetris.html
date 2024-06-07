@@ -1,34 +1,44 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Tetris</title>
-        <style>
-            .container {
-                float: left;
-                height: 100%;
-                width: 50%;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <canvas id="tetris" height="400" width="200">Browser not supported. Try a newer one. ;]</canvas>
-        </div>
-        <div class="container">
-            <div class="info">
-                Points: 
-                <span id="points"></span>
-            </div>
-            <div class="info">
-                Record: 
-                <span id="record"></span>
-            </div>
-            <div>
-                <canvas id="preview" height="120" width="120">Browser not supported. Try a newer one. ;]</canvas>
-            </div>
-        </div>
-        <script type="text/javascript" src="./tetris.js"></script>
-    </body>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris</title>
+    <style>
+      .container {
+        float: left;
+        height: 100%;
+        width: 100%;
+      }
+
+      .preview-container {
+        position: absolute;
+      }
+
+      canvas {
+        margin-left: auto;
+        margin-right: auto;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <canvas id="tetris" height="600" width="300">Browser not supported. Try a newer one. ;]</canvas>
+    </div>
+    <div class="preview-container">
+      <div class="info">
+        Points: 
+        <span id="points"></span>
+      </div>
+      <div class="info">
+        Record: 
+        <span id="record"></span>
+      </div>
+      <div>
+        <canvas id="preview" height="200" width="200">Browser not supported. Try a newer one. ;]</canvas>
+      </div>
+    </div>
+    <script type="text/javascript" src="./tetris.js"></script>
+  </body>
 </html>

@@ -1,11 +1,9 @@
 window.onload = () => {
-  const TETRIS = new Tetris()
-
-  TETRIS.boot()
+  new Tetris().boot()
 }
 
 class Drawer {
-  squareLength = 20
+  squareLength = 30
 
   constructor(canvas) {
     this.canvas = document.getElementById(canvas)
@@ -24,14 +22,11 @@ class Tetris {
   interval = 600
   gameStarted = false
   points = 0
-  piece = {}
-  stage = {}
-  merged = {}
   stage = new Stage()
-  preview = new Preview()
   merged = new Merged(this.stage, this)
   piece = new Piece(this.stage, this.merged)
   nextPiece = this.piece
+  preview = new Preview()
   piecePreview = new PiecePreview(this.preview, this.piece)
 
   boot = () => {
@@ -41,27 +36,24 @@ class Tetris {
 
     this.recordElement.innerText = 0
 
-    const INTERNAL_CALLBACK = (() => {
+    const callback = (() => {
       return async () => {
         let hundredDiff = hundredAfter - hundredBefore
 
         hundredBefore = this.getHundred()
 
-        if (!this.gameStarted) {
+        if (!this.gameStarted)
           this.interval = interval
-        }
 
-        if (this.piece.reachedLimit) {
+        if (this.piece.reachedLimit)
           this.getPiece()
-        }
 
-        if (hundredDiff > 0) {
+        if (hundredDiff > 0)
           this.nextLevel()
-        }
 
-        await document.addEventListener('keydown', this.gameStarted ? this.piece.keyPush : this.start)
+        document.addEventListener('keydown', this.gameStarted ? this.piece.keyPush : this.start)
 
-        setTimeout(INTERNAL_CALLBACK, this.interval)
+        setTimeout(callback, this.interval)
 
         this.drawInfo()
 
@@ -69,7 +61,7 @@ class Tetris {
       }
     })()
 
-    setTimeout(INTERNAL_CALLBACK, this.interval)
+    setTimeout(callback, this.interval)
   }
 
   drawInfo = () => {
@@ -86,7 +78,6 @@ class Tetris {
     }
 
     this.piecePreview.drawBlocks()
-
     this.pointsElement.innerText = this.points
   }
 
@@ -122,9 +113,9 @@ class Tetris {
   }
 
   restart = () => {
-    const RECORD = parseInt(this.recordElement.innerText)
+    const record = parseInt(this.recordElement.innerText)
 
-    this.recordElement.innerText = RECORD > this.points ? RECORD : this.points
+    this.recordElement.innerText = record > this.points ? record : this.points
     this.points = 0
     this.gameStarted = false
     this.merged = new Merged(this.stage, this)
@@ -175,7 +166,7 @@ class Piece {
   }
 
   getPiece = () => {
-    const TYPES = [
+    const types = [
       {
         color: '#c0392b',
         blocks: [
@@ -449,10 +440,10 @@ class Piece {
       }
     ]
 
-    const PIECE = TYPES[this.type]
+    const piece = types[this.type]
 
-    this.blocks = PIECE.blocks[this.instance]
-    this.color = PIECE.color
+    this.blocks = piece.blocks[this.instance]
+    this.color = piece.color
     this.leftLimit = this.blocks.reduce((min, p) => p.x < min ? p.x : min, this.blocks[0].x)
     this.topLimit = this.blocks.reduce((min, p) => p.y < min ? p.y : min, this.blocks[0].y)
     this.rightLimit = this.blocks.reduce((max, p) => p.x > max ? p.x : max, this.blocks[0].x)
@@ -460,17 +451,16 @@ class Piece {
   }
 
   drawBlocks = () => {
-    this.blocks.map((b) => {
-      const BLOCK = new Block('tetris', b.x, b.y, this.color)
+    this.blocks.forEach(b => {
+      const block = new Block('tetris', b.x, b.y, this.color)
 
-      BLOCK.draw()
+      block.draw()
     })
   }
 
   keyPush = (event) => {
-    if (this.reachedLimit) {
+    if (this.reachedLimit)
       return
-    }
 
     switch (event.keyCode) {
       case 37: // left arrow
@@ -492,19 +482,16 @@ class Piece {
   }
 
   rotate = () => {
-    if ((this.instance % 2 === 0 && this.rightLimit - this.base.x + this.base.y + 1 > this.stage.bottomLimit) || this.checkNearBlocks('down')) {
+    if ((this.instance % 2 === 0 && this.rightLimit - this.base.x + this.base.y + 1 > this.stage.bottomLimit) || this.checkNearBlocks('down'))
       return
-    }
 
-    if ((this.instance % 2 != 0 && this.bottomLimit - this.base.y + this.base.x + 1 > this.stage.rightLimit) || this.checkNearBlocks('right')) {
+    if ((this.instance % 2 != 0 && this.bottomLimit - this.base.y + this.base.x + 1 > this.stage.rightLimit) || this.checkNearBlocks('right'))
       return
-    }
 
     this.instance++
 
-    if (this.instance > 3) {
+    if (this.instance > 3)
       this.instance = 0
-    }
 
     this.getPiece()
   }
@@ -567,25 +554,24 @@ class Piece {
         break
     }
 
-    const NEXT_LINE = nearBlocks.map((b) => {
+    const nextLine = nearBlocks.map(b => {
       return this.merged.blocks.filter(m => m.x === b.x && m.y === b.y).length > 0
     })
 
-    return NEXT_LINE.filter(block => block === true).length > 0
+    return nextLine.filter(block => block === true).length > 0
   }
 
   getBlocks = (direction) => {
-    return this.blocks.map((p) => {
-      const NEXT_X = direction === 'bottom' ? p.x : (direction === 'right' ? p.x + 1 : p.x - 1)
-      const NEXT_Y = direction !== 'bottom' ? p.y : p.y + 1
-      const NEXT_BLOCK = this.blocks.filter(pi => pi.x === NEXT_X && pi.y === NEXT_Y)
+    return this.blocks.map(p => {
+      const nextX = direction === 'bottom' ? p.x : (direction === 'right' ? p.x + 1 : p.x - 1)
+      const nextY = direction !== 'bottom' ? p.y : p.y + 1
+      const nextBlock = this.blocks.filter(pi => pi.x === nextX && pi.y === nextY)
 
-      if (NEXT_BLOCK.length > 0) {
+      if (nextBlock.length > 0)
         return
-      }
 
-      return  { x: NEXT_X, y: NEXT_Y }
-    }).filter((n) => { return n != undefined })
+      return  { x: nextX, y: nextY }
+    }).filter(n => { return n != undefined })
   }
 }
 
@@ -611,13 +597,10 @@ class Merged {
     this.blocks.push(...piece.blocks)
 
     for (let i = 0; i < this.stage.bottomLimit; i++) {
-      const LINE = this.blocks.filter(b => b.y === i)
+      const line = this.blocks.filter(b => b.y === i)
 
-      if (LINE.length >= this.stage.rightLimit) {
-        this.pieces.map((pb) => {
-          pb.blocks = pb.blocks.filter(b => b.y != i)
-        })
-
+      if (line.length >= this.stage.rightLimit) {
+        this.pieces.map(pb => pb.blocks = pb.blocks.filter(b => b.y != i))
         this.blocks = this.blocks.filter(b => b.y != i)
         this.blocks.map(b => b.y < i ? { x: b.x, y: b.y++ } : { x: b.x, y: b.y })
         this.tetris.points += 10
@@ -646,7 +629,7 @@ class PiecePreview {
   base = { x: 1, y: 1 }
 
   constructor(preview, piece) {
-    const TYPES = [
+    const types = [
       {
         color: '#c0392b',
         blocks: [
@@ -920,18 +903,14 @@ class PiecePreview {
       }
     ]
 
-    const PIECE = TYPES[piece.type]
+    const piecePreview = types[piece.type]
 
-    this.blocks = PIECE.blocks[piece.instance]
-    this.color = PIECE.color
+    this.blocks = piecePreview.blocks[piece.instance]
+    this.color = piecePreview.color
   }
 
   drawBlocks = () => {
-    this.blocks.map((b) => {
-      const BLOCK = new Block('preview', b.x, b.y, this.color)
-
-      BLOCK.draw()
-    })
+    this.blocks.forEach(b => new Block('preview', b.x, b.y, this.color).draw())
   }
 }
 
